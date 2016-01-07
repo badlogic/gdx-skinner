@@ -107,6 +107,8 @@ public class UndoManager implements EventBusListener {
 	public void event(Event event) {
 		if(event.getType() == EventType.NewProject) {
 			clear();
+			beginStateChange("Initial state");
+			endStateChange();
 		}
 	}
 }

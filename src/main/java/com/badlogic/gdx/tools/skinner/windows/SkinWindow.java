@@ -94,21 +94,21 @@ public class SkinWindow extends UIWindow implements EventBusListener {
 		pack();
 	}
 	
-	private void updateTabs() {
-		colorsTab.update();
-		fontsTab.update();
-		drawablesTab.update();
-		stylesTab.update();
+	private void updateTabs(EventType eventType) {
+		colorsTab.update(eventType);
+		fontsTab.update(eventType);
+		drawablesTab.update(eventType);
+		stylesTab.update(eventType);
 	}
 
 	@Override
 	public void event(Event event) {
 		if (event.getType() == EventType.NewProject) {
 			setVisible(true);
-			updateTabs();
+			updateTabs(event.getType());
 		}
 		if(event.getType() == EventType.ProjectModified) {
-			updateTabs();
+			updateTabs(event.getType());
 		}
 	}
 	
@@ -150,7 +150,7 @@ public class SkinWindow extends UIWindow implements EventBusListener {
 		
 		abstract void newElement();
 		abstract void filter(String filter);
-		abstract void update();
+		abstract void update(EventType type);
 	}
 
 	class ColorsTab extends BaseTab {
@@ -229,11 +229,15 @@ public class SkinWindow extends UIWindow implements EventBusListener {
 		@Override
 		void filter(String filter) {
 			this.filter = filter.trim();
-			update();
+			update(null);
 		}
 
 		@Override
-		void update() {
+		void update(EventType eventType) {
+			if(eventType == EventType.NewProject) {
+				filter = null;
+				lastSelection = null;
+			}
 			scrollPaneTop.setWidget(null);
 			scrollPaneBottom.setWidget(null);
 			Tree list = new Tree(skinner.getUI().getSkin());			
@@ -324,7 +328,7 @@ public class SkinWindow extends UIWindow implements EventBusListener {
 		}
 
 		@Override
-		void update() {
+		void update(EventType type) {
 		}
 	}
 	
@@ -342,7 +346,7 @@ public class SkinWindow extends UIWindow implements EventBusListener {
 		}
 		
 		@Override
-		void update() {
+		void update(EventType type) {
 		}
 	}
 	
@@ -360,7 +364,7 @@ public class SkinWindow extends UIWindow implements EventBusListener {
 		}
 		
 		@Override
-		void update() {
+		void update(EventType type) {
 		}
 	}
 	

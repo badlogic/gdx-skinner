@@ -65,8 +65,7 @@ public class Skinner extends ApplicationAdapter implements EventBusListener {
 	
 	private void updateWindowTitle() {
 		if(projectPath != null) {
-			boolean isUnsaved = lastModified > lastSaved;
-			Gdx.graphics.setTitle("Skinner - " + projectPath + " " + (isUnsaved? "*": ""));
+			Gdx.graphics.setTitle("Skinner - " + projectPath + " " + (needsSaving()? "*": ""));
 		} else {
 			Gdx.graphics.setTitle("Skinner");
 		}
@@ -147,5 +146,9 @@ public class Skinner extends ApplicationAdapter implements EventBusListener {
 			lastModified = System.nanoTime();
 			updateWindowTitle();
 		}
+	}
+
+	public boolean needsSaving() {
+		return lastModified > lastSaved;
 	}
 }

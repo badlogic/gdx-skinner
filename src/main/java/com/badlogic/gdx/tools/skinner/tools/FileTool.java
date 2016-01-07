@@ -6,6 +6,7 @@ import java.io.FileFilter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Window;
+import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowAdapter;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowListener;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -71,23 +72,7 @@ public class FileTool implements Tool {
 		this.skinner = skinner;
 		
 		Lwjgl3Window window = ((com.badlogic.gdx.backends.lwjgl3.Lwjgl3Graphics)Gdx.graphics).getWindow();		
-		window.setWindowListener(new Lwjgl3WindowListener() {
-			@Override
-			public void iconified() {
-			}
-
-			@Override
-			public void deiconified() {
-			}
-
-			@Override
-			public void focusLost() {
-			}
-
-			@Override
-			public void focusGained() {
-			}
-
+		window.setWindowListener(new Lwjgl3WindowAdapter() {
 			@Override
 			public boolean windowIsClosing() {
 				if(skinner.needsSaving()) {

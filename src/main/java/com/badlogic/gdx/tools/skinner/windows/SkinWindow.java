@@ -1,7 +1,5 @@
 package com.badlogic.gdx.tools.skinner.windows;
 
-import java.util.Comparator;
-
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Pixmap.Format;
@@ -23,15 +21,15 @@ import com.badlogic.gdx.scenes.scene2d.ui.Tree;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
-import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener.ChangeEvent;
 import com.badlogic.gdx.tools.skinner.EventBus.Event;
 import com.badlogic.gdx.tools.skinner.EventBus.EventBusListener;
 import com.badlogic.gdx.tools.skinner.EventBus.EventType;
 import com.badlogic.gdx.tools.skinner.Skinner;
+import com.badlogic.gdx.tools.skinner.model.StyleColor;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.ObjectMap.Entry;
 import com.badlogic.gdx.utils.Scaling;
 import com.kotcrab.vis.ui.InputValidator;
+import com.kotcrab.vis.ui.util.dialog.DialogUtils;
 import com.kotcrab.vis.ui.widget.VisValidatableTextField;
 import com.kotcrab.vis.ui.widget.color.ColorPicker;
 import com.kotcrab.vis.ui.widget.color.ColorPickerAdapter;
@@ -157,7 +155,7 @@ public class SkinWindow extends UIWindow implements EventBusListener {
 
 	class ColorsTab extends BaseTab {
 		String filter;
-		Color lastColor;
+		String lastSelection;
 		
 		public ColorsTab() {
 			super("Colors");			
@@ -165,10 +163,9 @@ public class SkinWindow extends UIWindow implements EventBusListener {
 		
 		@Override
 		void newElement() {
-			TextButton ok = new TextButton("Ok", skinner.getUI().getSkin());
-			TextButton cancel = new TextButton("Cancel", skinner.getUI().getSkin());
-			
 			Dialog newColorDialog = new Dialog("New Color", skinner.getUI().getSkin());
+			TextButton ok = new TextButton("Ok", skinner.getUI().getSkin());
+			TextButton cancel = new TextButton("Cancel", skinner.getUI().getSkin());			
 			VisValidatableTextField colorName = new VisValidatableTextField(new InputValidator() {
 				@Override
 				public boolean validateInput(String input) {							
@@ -214,9 +211,14 @@ public class SkinWindow extends UIWindow implements EventBusListener {
 			ok.addListener(new ClickListener() {
 				@Override
 				public void clicked(InputEvent event, float x, float y) {
+					if(skinner.getProject().hasColor(colorName.getText())) {
+						DialogUtils.showErrorDialog(skinner.getUI().getStage(), "Color names " + colorName.getText() + " already exists");
+						return;
+					}
+					
 					newColorDialog.hide();
-					skinner.getUndoManager().beginStateChange("Added Color");
-					skinner.getProject().getColors().put(colorName.getText(), color.getImage().getColor());
+					skinner.getUndoManager().beginStateChange("Added Color");					
+					skinner.getProject().newColor(colorName.getText(), color.getImage().getColor());
 					skinner.getUndoManager().endStateChange();
 					skinner.getEventBus().add(new Event("SkinWindow added color", EventType.ProjectModified));
 				}
@@ -235,52 +237,38 @@ public class SkinWindow extends UIWindow implements EventBusListener {
 			scrollPaneTop.setWidget(null);
 			scrollPaneBottom.setWidget(null);
 			Tree list = new Tree(skinner.getUI().getSkin());			
-			Array<Entry<String, Color>> colors = new Array<>();
-			for(Entry<String, Color> entry: skinner.getProject().getColors().entries()) {
-				Entry<String, Color> copy = new Entry<String, Color>();
-				if(filter == null || 
-				   (filter.length() == 0 || entry.key.toLowerCase().contains(filter.toLowerCase()))) {
-					copy.key = entry.key;
-					copy.value = entry.value;
-					colors.add(copy);
-				}				
-			}
-			colors.sort(new Comparator<Entry<String, Color>>() {
-				public int compare(Entry<String, Color> o1, Entry<String, Color> o2) {
-					return o1.key.compareTo(o2.key);
-				}
-			});		
+			Array<StyleColor> colors = skinner.getProject().getColors().values().toArray();
+			colors.sort((o1, o2) -> { return o1.getName().compareTo(o2.getName()); });
 			list.addListener(new ChangeListener() {
 				@Override
 				public void changed(ChangeEvent event, Actor actor) {
-					updateProperties(list);
+					if(list.getSelection().first() == null) {
+						scrollPaneBottom.setWidget(null);
+						return;
+					}	
+					displayProperties(((ListNode<StyleColor>) list.getSelection().first()).getObject());
 				}
 			});
-			for(Entry<String, Color> color: colors) {
+			for(StyleColor color: colors) {
 				Table colorItem = new Table();
 				colorItem.defaults().top().left();				
 				TextureRegionDrawable colorDrawable = new TextureRegionDrawable(pixel);					
 				Image image = new Image(colorDrawable);
 				image.setScaling(Scaling.stretch);		
-				image.setColor(color.value);
+				image.setColor(color.getColor());
 				colorItem.add(image).width(32).fillY().expandY().spaceRight(5);
-				colorItem.add(new Label(color.key, skinner.getUI().getSkin()));
-				ListNode<Entry<String, Color>> node = new ListNode<Entry<String, Color>>(colorItem, color);
+				colorItem.add(new Label(color.getName(), skinner.getUI().getSkin()));
+				ListNode<StyleColor> node = new ListNode<>(colorItem, color);
 				list.add(node);
-				if(lastColor == color.value) {
+				if(color.getId().equals(lastSelection)) {
 					list.getSelection().set(node);
 				}
 			}			
 			scrollPaneTop.setWidget(list);						
 		}
 		
-		void updateProperties(Tree list) {
-			if(list.getSelection().first() == null) {
-				scrollPaneBottom.setWidget(null);
-				return;
-			}			
-			ListNode<Entry<String, Color>> node = (ListNode<Entry<String, Color>>) list.getSelection().first();
-			lastColor = node.getObject().value;
+		void displayProperties(StyleColor styleColor) {
+			lastSelection = styleColor.getId();
 			Table properties = new Table();
 			properties.top().left();
 			VisValidatableTextField colorName = new VisValidatableTextField(new InputValidator() {
@@ -289,12 +277,12 @@ public class SkinWindow extends UIWindow implements EventBusListener {
 					return input != null && input.trim().length() > 0;
 				}
 			});
-			colorName.setText(node.getObject().key);
+			colorName.setText(styleColor.getName());
 			TextureRegionDrawable colorDrawable = new TextureRegionDrawable(pixel);					
 			ImageButton color = new ImageButton(colorDrawable);
 			color.getImageCell().fill().expand();
 			color.getImage().setScaling(Scaling.stretch);
-			color.getImage().setColor(node.getObject().value);
+			color.getImage().setColor(styleColor.getColor());
 			
 			properties.add(new Label("Name: ", skinner.getUI().getSkin()));
 			properties.add(colorName);
@@ -309,7 +297,7 @@ public class SkinWindow extends UIWindow implements EventBusListener {
 						@Override
 						public void finished(Color newColor) {
 							skinner.getUndoManager().beginStateChange("SkinWindow color change");
-							skinner.getProject().getColors().get(node.getObject().key).set(newColor);
+							skinner.getProject().getColors().get(styleColor.getId()).setColor(newColor);
 							skinner.getUndoManager().endStateChange();
 							skinner.getEventBus().add(new Event("Color changed", EventType.ProjectModified));
 						}

@@ -44,5 +44,6 @@ dependencies {
     compile "org.lwjgl:lwjgl-platform:$lwjglVersion:natives-windows"
     compile "org.lwjgl:lwjgl-platform:$lwjglVersion:natives-osx"
     compile "org.lwjgl:lwjgl-platform:$lwjglVersion:natives-linux"
-    compile "com.kotcrab.vis:vis-ui:$visuiVersion" 
+    compile "com.kotcrab.vis:vis-ui:$visuiVersion"
+    testCompile "junit:junit:4.12"
 }

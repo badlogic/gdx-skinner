@@ -1,0 +1,47 @@
+apply plugin: "java"
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+ext {
+    mainClassName = "com.badlogicgames.skinner.Skinner"
+    gdxVersion = '1.8.1-SNAPSHOT'    
+    lwjglVersion = "3.0.0b"
+}
+
+task run(dependsOn: classes, type: JavaExec) {
+    main = mainClassName
+    classpath = sourceSets.main.runtimeClasspath
+    standardInput = System.in    
+    ignoreExitValue = true
+}
+
+task dist(type: Jar) {
+    from files(sourceSets.main.output.classesDir)
+    from files(sourceSets.main.output.resourcesDir)
+    from {configurations.compile.collect {zipTree(it)}}    
+ 
+    manifest {
+        attributes 'Main-Class': mainClassName
+    }
+}
+dist.dependsOn classes
+
+repositories {
+    mavenLocal()
+    maven { url 'http://oss.sonatype.org/content/repositories/snapshots' }
+    jcenter()
+}
+
+dependencies {
+    compile "com.badlogicgames.gdx:gdx:$gdxVersion"    
+    compile ("com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion") {
+        exclude group: "org.lwjgl"
+    }
+    compile "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+    compile "org.lwjgl:lwjgl:$lwjglVersion"
+    compile "org.lwjgl:lwjgl-platform:$lwjglVersion:natives-windows"
+    compile "org.lwjgl:lwjgl-platform:$lwjglVersion:natives-osx"
+    compile "org.lwjgl:lwjgl-platform:$lwjglVersion:natives-linux"
+    compile "com.kotcrab.vis:vis-ui:$visuiVersion"
+}

@@ -40,9 +40,9 @@ public abstract class ProjectElementTab<T extends ProjectElement> extends UITab 
 		
 		filterListAndToolbar.defaults().left().top();
 		filterListAndToolbar.add(new Label("Search", skinner.getUI().getSkin())).left();
-		filterListAndToolbar.add(filter).fillX().expandX();
+		filterListAndToolbar.add(filter).colspan(2).fillX().expandX();
 		filterListAndToolbar.row();
-		filterListAndToolbar.add(scrollPaneTop).colspan(2).fill().expand();
+		filterListAndToolbar.add(scrollPaneTop).colspan(3).fill().expand();
 		filterListAndToolbar.row();
 		filterListAndToolbar.add(newElement).fillX().expandX();
 		filterListAndToolbar.add(deleteElement).fillX().expandX();

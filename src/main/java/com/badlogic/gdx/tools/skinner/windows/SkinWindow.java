@@ -1,381 +1,71 @@
 package com.badlogic.gdx.tools.skinner.windows;
 
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.Pixmap;
-import com.badlogic.gdx.graphics.Pixmap.Format;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.scenes.scene2d.Actor;
-import com.badlogic.gdx.scenes.scene2d.InputEvent;
-import com.badlogic.gdx.scenes.scene2d.ui.Dialog;
-import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
-import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
-import com.badlogic.gdx.scenes.scene2d.ui.SplitPane;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
-import com.badlogic.gdx.scenes.scene2d.ui.TextField;
-import com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldListener;
-import com.badlogic.gdx.scenes.scene2d.ui.Tree;
-import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
-import com.badlogic.gdx.tools.skinner.EventBus.Event;
 import com.badlogic.gdx.tools.skinner.EventBus.EventBusListener;
-import com.badlogic.gdx.tools.skinner.EventBus.EventType;
+import com.badlogic.gdx.tools.skinner.EventBus.ProjectEvent;
+import com.badlogic.gdx.tools.skinner.EventBus.ProjectEventType;
 import com.badlogic.gdx.tools.skinner.Skinner;
-import com.badlogic.gdx.tools.skinner.model.StyleColor;
-import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.Scaling;
-import com.kotcrab.vis.ui.InputValidator;
-import com.kotcrab.vis.ui.util.dialog.DialogUtils;
-import com.kotcrab.vis.ui.widget.VisValidatableTextField;
-import com.kotcrab.vis.ui.widget.color.ColorPicker;
-import com.kotcrab.vis.ui.widget.color.ColorPickerAdapter;
+import com.badlogic.gdx.tools.skinner.windows.projectelements.ColorsTab;
 import com.kotcrab.vis.ui.widget.tabbedpane.Tab;
 import com.kotcrab.vis.ui.widget.tabbedpane.TabbedPane;
 import com.kotcrab.vis.ui.widget.tabbedpane.TabbedPaneAdapter;
 
-public class SkinWindow extends UIWindow implements EventBusListener {
-	TextureRegion pixel;
+public class SkinWindow extends UIWindow implements EventBusListener<ProjectEvent> {
 	Table tabContent;
 	ColorsTab colorsTab;
-	FontsTab fontsTab;
-	DrawablesTab drawablesTab;
-	StylesTab stylesTab;
+	TabbedPane tabs;
 
 	public SkinWindow(Skinner skinner) {
 		super(skinner, "Skin");
 		setResizable(true);
 		top().left();
-		skinner.getEventBus().addListener(this);
-
-		Pixmap pixmap = new Pixmap(1, 1, Format.RGBA8888);
-		pixmap.setColor(Color.WHITE);
-		pixmap.fill();
-		pixel = new TextureRegion(new Texture(pixmap));
-		pixmap.dispose();
+		skinner.getEventBus().addListener(this);		
 		
-		setupTabs();
+		colorsTab = new ColorsTab(skinner);	
+		
+		tabs = new TabbedPane();
+		tabs.add(colorsTab);
+		add(tabs.getTable()).fillX().row();
+		tabContent = new Table();
+		tabContent.setName("Skin window tab content");
+		add(tabContent).expand().fill();	
+		
+		tabs.addListener(new TabbedPaneAdapter() {
+			@Override
+			public void switchedTab(Tab tab) {
+				setTab(tab);
+			}
+		});
+		tabs.switchTab(0);
+		setTab(tabs.getActiveTab());
+		pack();
 		setVisible(false);
+	}
+	
+	private void setTab(Tab tab) {
+		tabContent.clearChildren();
+		tabContent.add(tab.getContentTable()).fill().expand().top().left();
+		tabContent.invalidate();
+		tabContent.layout();
 	}
 
 	@Override
 	public void dispose() {
-		skinner.getEventBus().removeListener(this);
-		pixel.getTexture().dispose();
+		skinner.getEventBus().removeListener(this);		
 	}
 	
-	void setupTabs() {			
-		TabbedPane tabs = new TabbedPane();
-		colorsTab = new ColorsTab();
-		fontsTab = new FontsTab();
-		drawablesTab = new DrawablesTab();
-		stylesTab = new StylesTab();
-		
-		tabs.add(colorsTab);
-		tabs.add(fontsTab);
-		tabs.add(drawablesTab);
-		tabs.add(stylesTab);
-		tabs.addListener(new TabbedPaneAdapter() {
-			@Override
-			public void switchedTab(Tab tab) {
-				tabContent.clearChildren();
-				tabContent.add(tab.getContentTable()).fill().expand().top().left();
-			}
-		});
-		add(tabs.getTable()).fillX().row();
-		tabContent = new Table();
-		add(tabContent).expand().fill();
-		tabs.switchTab(0);
-		invalidate();
-		layout();
-		pack();
-	}
-	
-	private void updateTabs(EventType eventType) {
-		colorsTab.update(eventType);
-		fontsTab.update(eventType);
-		drawablesTab.update(eventType);
-		stylesTab.update(eventType);
-	}
-
 	@Override
-	public void event(Event event) {
-		if (event.getType() == EventType.NewProject) {
+	public void event(ProjectEvent event) {
+		if (event.getType() == ProjectEventType.NewProject) {
 			setVisible(true);
-			updateTabs(event.getType());
+			updateTabs();
 		}
-		if(event.getType() == EventType.ProjectModified) {
-			updateTabs(event.getType());
-		}
-	}
-	
-	abstract class BaseTab extends UITab {
-		protected ScrollPane scrollPaneTop;
-		protected ScrollPane scrollPaneBottom;
-		
-		public BaseTab(String title) {
-			super(title);
-			
-			Table content = getContentTable();
-			content.defaults().left().top();
-			
-			TextButton newElement = new TextButton("New", skinner.getUI().getSkin());
-			TextField filter = new TextField("", skinner.getUI().getSkin());			
-			scrollPaneTop = new ScrollPane(null, skinner.getUI().getSkin());
-			scrollPaneBottom = new ScrollPane(null, skinner.getUI().getSkin());
-			SplitPane splitPane = new SplitPane(scrollPaneTop, scrollPaneBottom, true, skinner.getUI().getSkin());
-			
-			content.add(newElement).left();
-			content.add(filter).fillX().expandX();
-			content.row();
-			content.add(splitPane).colspan(2).expand().fill();
-
-			newElement.addListener(new ClickListener() {
-				@Override
-				public void clicked(InputEvent event, float x, float y) {
-					newElement();
-				}
-			});
-			
-			filter.setTextFieldListener(new TextFieldListener() {
-				@Override
-				public void keyTyped(TextField textField, char c) {
-					filter(textField.getText());
-				}
-			});
-		}
-		
-		abstract void newElement();
-		abstract void filter(String filter);
-		abstract void update(EventType type);
-	}
-
-	class ColorsTab extends BaseTab {
-		String filter;
-		String lastSelection;
-		
-		public ColorsTab() {
-			super("Colors");			
-		}
-		
-		@Override
-		void newElement() {
-			Dialog newColorDialog = new Dialog("New Color", skinner.getUI().getSkin());
-			TextButton ok = new TextButton("Ok", skinner.getUI().getSkin());
-			TextButton cancel = new TextButton("Cancel", skinner.getUI().getSkin());			
-			VisValidatableTextField colorName = new VisValidatableTextField(new InputValidator() {
-				@Override
-				public boolean validateInput(String input) {							
-					boolean result = input != null && input.trim().length() > 0;
-					ok.setDisabled(!result);
-					return result;
-				}
-			});
-			TextureRegionDrawable colorDrawable = new TextureRegionDrawable(pixel);					
-			ImageButton color = new ImageButton(colorDrawable);
-			color.getImageCell().fill().expand();
-			color.getImage().setScaling(Scaling.stretch);					
-			
-			newColorDialog.getContentTable().add(new Label("Name: ", skinner.getUI().getSkin()));
-			newColorDialog.getContentTable().add(colorName);
-			newColorDialog.getContentTable().row();
-			newColorDialog.getContentTable().add(new Label("Color: ", skinner.getUI().getSkin()));
-			newColorDialog.getContentTable().add(color).fill();
-			newColorDialog.getButtonTable().add(cancel);
-			newColorDialog.getButtonTable().add(ok);					
-			
-			color.addListener(new ClickListener() {
-				@Override
-				public void clicked(InputEvent event, float x, float y) {
-					ColorPicker colorPicker = new ColorPicker(new ColorPickerAdapter() {
-						@Override
-						public void finished(Color newColor) {
-							color.getImage().setColor(newColor);
-						}
-					});
-					colorPicker.setColor(color.getImage().getColor());
-					skinner.getUI().getStage().addActor(colorPicker.fadeIn());
-				}
-			});
-			
-			cancel.addListener(new ClickListener() {
-				@Override
-				public void clicked(InputEvent event, float x, float y) {
-					newColorDialog.hide();
-				}
-			});
-			
-			ok.addListener(new ClickListener() {
-				@Override
-				public void clicked(InputEvent event, float x, float y) {
-					if(skinner.getProject().hasColor(colorName.getText())) {
-						DialogUtils.showErrorDialog(skinner.getUI().getStage(), "Color names " + colorName.getText() + " already exists");
-						return;
-					}
-					
-					newColorDialog.hide();
-					skinner.getUndoManager().beginStateChange("Added Color");					
-					skinner.getProject().newColor(colorName.getText(), color.getImage().getColor());
-					skinner.getUndoManager().endStateChange();
-					skinner.getEventBus().add(new Event("SkinWindow added color", EventType.ProjectModified));
-				}
-			});
-			newColorDialog.show(skinner.getUI().getStage());
-		}
-
-		@Override
-		void filter(String filter) {
-			this.filter = filter.trim();
-			update(null);
-		}
-
-		@Override
-		void update(EventType eventType) {
-			if(eventType == EventType.NewProject) {
-				filter = null;
-				lastSelection = null;
-			}
-			scrollPaneTop.setWidget(null);
-			scrollPaneBottom.setWidget(null);
-			Tree list = new Tree(skinner.getUI().getSkin());			
-			Array<StyleColor> colors = skinner.getProject().getColors().values().toArray();
-			colors.sort((o1, o2) -> { return o1.getName().compareTo(o2.getName()); });
-			list.addListener(new ChangeListener() {
-				@Override
-				public void changed(ChangeEvent event, Actor actor) {
-					if(list.getSelection().first() == null) {
-						scrollPaneBottom.setWidget(null);
-						return;
-					}	
-					displayProperties(((ListNode<StyleColor>) list.getSelection().first()).getObject());
-				}
-			});
-			for(StyleColor color: colors) {
-				Table colorItem = new Table();
-				colorItem.defaults().top().left();				
-				TextureRegionDrawable colorDrawable = new TextureRegionDrawable(pixel);					
-				Image image = new Image(colorDrawable);
-				image.setScaling(Scaling.stretch);		
-				image.setColor(color.getColor());
-				colorItem.add(image).width(32).fillY().expandY().spaceRight(5);
-				colorItem.add(new Label(color.getName(), skinner.getUI().getSkin()));
-				ListNode<StyleColor> node = new ListNode<>(colorItem, color);
-				list.add(node);
-				if(color.getId().equals(lastSelection)) {
-					list.getSelection().set(node);
-				}
-			}			
-			scrollPaneTop.setWidget(list);						
-		}
-		
-		void displayProperties(StyleColor styleColor) {
-			lastSelection = styleColor.getId();
-			Table properties = new Table();
-			properties.top().left();
-			VisValidatableTextField colorName = new VisValidatableTextField(new InputValidator() {
-				@Override
-				public boolean validateInput(String input) {							
-					return input != null && input.trim().length() > 0;
-				}
-			});
-			colorName.setText(styleColor.getName());
-			TextureRegionDrawable colorDrawable = new TextureRegionDrawable(pixel);					
-			ImageButton color = new ImageButton(colorDrawable);
-			color.getImageCell().fill().expand();
-			color.getImage().setScaling(Scaling.stretch);
-			color.getImage().setColor(styleColor.getColor());
-			
-			properties.add(new Label("Name: ", skinner.getUI().getSkin()));
-			properties.add(colorName);
-			properties.row();
-			properties.add(new Label("Color: ", skinner.getUI().getSkin()));
-			properties.add(color).fill();
-			
-			color.addListener(new ClickListener() {
-				@Override
-				public void clicked(InputEvent event, float x, float y) {
-					ColorPicker colorPicker = new ColorPicker(new ColorPickerAdapter() {
-						@Override
-						public void finished(Color newColor) {
-							skinner.getUndoManager().beginStateChange("SkinWindow color change");
-							skinner.getProject().getColors().get(styleColor.getId()).setColor(newColor);
-							skinner.getUndoManager().endStateChange();
-							skinner.getEventBus().add(new Event("Color changed", EventType.ProjectModified));
-						}
-					});
-					colorPicker.setColor(color.getImage().getColor());
-					skinner.getUI().getStage().addActor(colorPicker.fadeIn());
-				}
-			});
-			scrollPaneBottom.setWidget(properties);
+		if(event.getType() == ProjectEventType.ProjectModified) {
+			updateTabs();
 		}
 	}
 	
-	class FontsTab extends BaseTab {
-		public FontsTab() {
-			super("Fonts");						
-		}
-
-		@Override
-		void newElement() {
-		}
-		
-		@Override
-		void filter(String filter) {
-		}
-
-		@Override
-		void update(EventType type) {
-		}
-	}
-	
-	class DrawablesTab extends BaseTab {
-		public DrawablesTab() {
-			super("Drawables");
-		}
-
-		@Override
-		void newElement() {
-		}
-		
-		@Override
-		void filter(String filter) {
-		}
-		
-		@Override
-		void update(EventType type) {
-		}
-	}
-	
-	class StylesTab extends BaseTab {
-		public StylesTab() {
-			super("Styles");
-		}
-
-		@Override
-		void newElement() {
-		}
-		
-		@Override
-		void filter(String filter) {
-		}
-		
-		@Override
-		void update(EventType type) {
-		}
-	}
-	
-	class ListNode<T> extends Tree.Node {
-		final T obj;
-		public ListNode(Actor actor, T obj) {
-			super(actor);
-			this.obj = obj;
-		}
-		public T getObject() {
-			return obj;
-		}
-	}
+	private void updateTabs() {
+		colorsTab.update();		
+	}	
 }

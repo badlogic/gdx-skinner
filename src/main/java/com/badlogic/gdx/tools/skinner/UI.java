@@ -1,9 +1,15 @@
 package com.badlogic.gdx.tools.skinner;
 
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.Pixmap.Format;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.tools.skinner.windows.UIWindow;
 import com.badlogic.gdx.utils.Disposable;
 import com.badlogic.gdx.utils.ObjectMap;
@@ -17,6 +23,7 @@ public class UI implements Disposable {
 	final Stage stage;
 	final Table toolBar;
 	final ObjectMap<Class<? extends UIWindow>, UIWindow> windows = new ObjectMap<Class<? extends UIWindow>, UIWindow>();
+	final TextureRegionDrawable pixelDrawable;
 	
 	public UI(Skinner skinner) {
 		VisUI.load();
@@ -28,7 +35,13 @@ public class UI implements Disposable {
 		toolBar = new Table();
 		toolBar.setFillParent(true);
 		toolBar.top().left();
-		stage.addActor(toolBar);		
+		stage.addActor(toolBar);
+		
+		Pixmap pixmap = new Pixmap(1, 1, Format.RGBA8888);
+		pixmap.setColor(Color.WHITE);
+		pixmap.fill();
+		pixelDrawable = new TextureRegionDrawable(new TextureRegion(new Texture(pixmap)));
+		pixmap.dispose();
 	}
 
 	public Skin getSkin() {
@@ -37,6 +50,10 @@ public class UI implements Disposable {
 
 	public Table getToolbar() {
 		return toolBar;
+	}
+	
+	public TextureRegionDrawable getPixelDrawable() {
+		return pixelDrawable;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -78,5 +95,6 @@ public class UI implements Disposable {
 			window.dispose();
 		}
 		stage.dispose();
+		pixelDrawable.getRegion().getTexture().dispose();
 	}	
 }

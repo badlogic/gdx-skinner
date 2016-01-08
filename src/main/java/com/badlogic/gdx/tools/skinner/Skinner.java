@@ -6,9 +6,9 @@ import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.tools.skinner.EventBus.Event;
+import com.badlogic.gdx.tools.skinner.EventBus.ProjectEvent;
 import com.badlogic.gdx.tools.skinner.EventBus.EventBusListener;
-import com.badlogic.gdx.tools.skinner.EventBus.EventType;
+import com.badlogic.gdx.tools.skinner.EventBus.ProjectEventType;
 import com.badlogic.gdx.tools.skinner.model.Project;
 import com.badlogic.gdx.tools.skinner.model.UndoManager;
 import com.badlogic.gdx.tools.skinner.tools.FileTool;
@@ -16,9 +16,9 @@ import com.badlogic.gdx.tools.skinner.tools.UndoTool;
 import com.badlogic.gdx.tools.skinner.windows.SkinWindow;
 import com.badlogic.gdx.utils.Json;
 
-public class Skinner extends ApplicationAdapter implements EventBusListener {
+public class Skinner extends ApplicationAdapter implements EventBusListener<ProjectEvent> {
 	Json json = new Json();
-	EventBus eventBus;
+	EventBus<ProjectEvent> eventBus;
 	Preferences prefs;
 	UI ui;
 	UndoManager undoManager;
@@ -31,7 +31,7 @@ public class Skinner extends ApplicationAdapter implements EventBusListener {
 	@Override
 	public void create() {
 		prefs = Gdx.app.getPreferences("skinner");
-		eventBus = new EventBus();
+		eventBus = new EventBus<ProjectEvent>();
 		eventBus.addListener(this);
 		ui = new UI(this);
 		undoManager = new UndoManager(this);
@@ -52,7 +52,7 @@ public class Skinner extends ApplicationAdapter implements EventBusListener {
 
 	@Override
 	public void render() {
-		Gdx.gl.glClearColor(0.2f, 0.2f, 0.2f, 1);
+		Gdx.gl.glClearColor(1, 1, 1, 1);
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 		eventBus.drain();
 		ui.render();
@@ -90,7 +90,7 @@ public class Skinner extends ApplicationAdapter implements EventBusListener {
 		this.projectPath = projectPath;
 	}
 
-	public EventBus getEventBus() {
+	public EventBus<ProjectEvent> getEventBus() {
 		return eventBus;
 	}
 
@@ -132,17 +132,17 @@ public class Skinner extends ApplicationAdapter implements EventBusListener {
 	}
 
 	@Override
-	public void event(Event event) {
-		if(event.type == EventType.NewProject) {
+	public void event(ProjectEvent event) {
+		if(event.type == ProjectEventType.NewProject) {
 			lastSaved = 0;
 			lastModified = 1;
 			updateWindowTitle();
 		}
-		if(event.type == EventType.ProjectSaved) {
+		if(event.type == ProjectEventType.ProjectSaved) {
 			lastSaved = System.nanoTime();
 			updateWindowTitle();
 		}
-		if(event.type == EventType.ProjectModified) {
+		if(event.type == ProjectEventType.ProjectModified) {
 			lastModified = System.nanoTime();
 			updateWindowTitle();
 		}

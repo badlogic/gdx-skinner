@@ -1,13 +1,13 @@
 package com.badlogic.gdx.tools.skinner.model;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.tools.skinner.EventBus.Event;
+import com.badlogic.gdx.tools.skinner.EventBus.ProjectEvent;
 import com.badlogic.gdx.tools.skinner.EventBus.EventBusListener;
-import com.badlogic.gdx.tools.skinner.EventBus.EventType;
+import com.badlogic.gdx.tools.skinner.EventBus.ProjectEventType;
 import com.badlogic.gdx.tools.skinner.Skinner;
 import com.badlogic.gdx.utils.Array;
 
-public class UndoManager implements EventBusListener {
+public class UndoManager implements EventBusListener<ProjectEvent> {
 	public static class UndoState {
 		byte[] state;
 		final String action;
@@ -100,12 +100,12 @@ public class UndoManager implements EventBusListener {
 	
 	private void replaceProject(Project newProject) {		
 		skinner.setProject(newProject);
-		skinner.getEventBus().add(new Event("Undo Manager event", EventType.ProjectModified));
+		skinner.getEventBus().add(new ProjectEvent("Undo Manager event", ProjectEventType.ProjectModified));
 	}
 
 	@Override
-	public void event(Event event) {
-		if(event.getType() == EventType.NewProject) {
+	public void event(ProjectEvent event) {
+		if(event.getType() == ProjectEventType.NewProject) {
 			clear();
 			beginStateChange("Initial state");
 			endStateChange();

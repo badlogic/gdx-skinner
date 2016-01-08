@@ -14,8 +14,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.tools.skinner.EventBus.Event;
-import com.badlogic.gdx.tools.skinner.EventBus.EventType;
+import com.badlogic.gdx.tools.skinner.EventBus.ProjectEvent;
+import com.badlogic.gdx.tools.skinner.EventBus.ProjectEventType;
 import com.badlogic.gdx.tools.skinner.ShortCutManager.ShortCut;
 import com.badlogic.gdx.tools.skinner.Skinner;
 import com.badlogic.gdx.tools.skinner.model.Project;
@@ -224,7 +224,7 @@ public class FileTool implements Tool {
 						Project project = new Project();
 						skinner.setProject(project);
 						skinner.setProjectPath(new File(path.getText() + "/" + name.getText() + ".skin").getAbsolutePath());
-						skinner.getEventBus().add(new Event("File tool action", EventType.NewProject));
+						skinner.getEventBus().add(new ProjectEvent("File tool action", ProjectEventType.NewProject));
 					}
 				}
 			});
@@ -239,12 +239,12 @@ public class FileTool implements Tool {
 				@Override
 				public void yes() {
 					saveProject();
-					newProject(true);
+					openProject(false);
 				}
 
 				@Override
 				public void no() {
-					newProject(true);
+					openProject(false);
 				}
 			});
 		} else {
@@ -253,7 +253,7 @@ public class FileTool implements Tool {
 			fileChooser.setFileFilter(new FileFilter() {
 				@Override
 				public boolean accept(File pathname) {
-					return pathname.getName().endsWith(".skin");
+					return pathname.isDirectory() || pathname.getName().endsWith(".skin");
 				}
 			});			
 			fileChooser.setListener(new FileChooserAdapter() {
@@ -262,7 +262,7 @@ public class FileTool implements Tool {
 					try {						
 						skinner.setProject(ProjectSerializer.deserialize(file.readBytes()));
 						skinner.setProjectPath(file.file().getAbsolutePath());
-						skinner.getEventBus().add(new Event("Project opened", EventType.NewProject));
+						skinner.getEventBus().add(new ProjectEvent("Project opened", ProjectEventType.NewProject));
 					} catch(Throwable t) {
 						DialogUtils.showErrorDialog(skinner.getUI().getStage(), "Couldn't open project " + file.file().getAbsolutePath());
 					}
@@ -277,7 +277,7 @@ public class FileTool implements Tool {
 			try {
 				byte[] bytes = ProjectSerializer.serialize(skinner.getProject());
 				Gdx.files.absolute(skinner.getProjectPath()).writeBytes(bytes, false);
-				skinner.getEventBus().add(new Event("File tool action", EventType.ProjectSaved));
+				skinner.getEventBus().add(new ProjectEvent("File tool action", ProjectEventType.ProjectSaved));
 			} catch(Throwable t) {
 				Gdx.app.error("FileTool",  "Couldn't save project", t);	
 			}

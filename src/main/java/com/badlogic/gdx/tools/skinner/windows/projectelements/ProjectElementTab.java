@@ -3,6 +3,7 @@ package com.badlogic.gdx.tools.skinner.windows.projectelements;
 import java.util.Iterator;
 
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.ui.SplitPane;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
@@ -29,18 +30,35 @@ public abstract class ProjectElementTab<T extends ProjectElement> extends UITab 
 		this.skinner = skinner;			
 		
 		TextButton newElement = new TextButton("New", skinner.getUI().getSkin());
+		TextButton deleteElement = new TextButton("Delete", skinner.getUI().getSkin());
+		TextButton copyElement = new TextButton("Copy", skinner.getUI().getSkin());
 		TextField filter = new TextField("", skinner.getUI().getSkin());			
 		scrollPaneTop = new ScrollPane(getList().getContent(), skinner.getUI().getSkin());
 		scrollPaneBottom = new ScrollPane(getProperties().getContent(), skinner.getUI().getSkin());
-		SplitPane splitPane = new SplitPane(scrollPaneTop, scrollPaneBottom, true, skinner.getUI().getSkin());
+		Table filterListAndToolbar = new Table();
+		SplitPane splitPane = new SplitPane(filterListAndToolbar, scrollPaneBottom, true, skinner.getUI().getSkin());
 		
-		Table content = getContentTable();
-		content.defaults().left().top();
-		content.add(newElement).left();
-		content.add(filter).fillX().expandX();
-		content.row();
-		content.add(splitPane).colspan(2).expand().fill();		
+		filterListAndToolbar.defaults().left().top();
+		filterListAndToolbar.add(new Label("Search", skinner.getUI().getSkin())).left();
+		filterListAndToolbar.add(filter).fillX().expandX();
+		filterListAndToolbar.row();
+		filterListAndToolbar.add(scrollPaneTop).colspan(2).fill().expand();
+		filterListAndToolbar.row();
+		filterListAndToolbar.add(newElement).fillX().expandX();
+		filterListAndToolbar.add(deleteElement).fillX().expandX();
+		filterListAndToolbar.add(copyElement).fillX().expandX();
+		
+		getContentTable().defaults().left().top();
+		getContentTable().add(splitPane).fill().expand();
 
+		filter.setTextFieldListener(new TextFieldListener() {
+			@Override
+			public void keyTyped(TextField textField, char c) {
+				ProjectElementTab.this.filter = textField.getText().trim().toLowerCase();
+				update();
+			}
+		});
+		
 		newElement.addListener(new ClickListener() {
 			@Override
 			public void clicked(InputEvent event, float x, float y) {
@@ -48,13 +66,25 @@ public abstract class ProjectElementTab<T extends ProjectElement> extends UITab 
 			}
 		});
 		
-		filter.setTextFieldListener(new TextFieldListener() {
+		deleteElement.addListener(new ClickListener() {
 			@Override
-			public void keyTyped(TextField textField, char c) {
-				ProjectElementTab.this.filter = textField.getText().trim().toLowerCase();
-				update();
+			public void clicked(InputEvent event, float x, float y) {
+				T element = getList().getSelection();
+				if(element != null) {
+					removeElement(element);					
+				}
 			}
-		});				
+		});
+		
+		copyElement.addListener(new ClickListener() {
+			@Override
+			public void clicked(InputEvent event, float x, float y) {
+				T element = getList().getSelection();
+				if(element != null) {
+					copyElement(element);					
+				}
+			}
+		});
 	}
 	
 	@Override
@@ -95,4 +125,5 @@ public abstract class ProjectElementTab<T extends ProjectElement> extends UITab 
 	
 	public abstract void newElement();
 	public abstract void removeElement(T element);
+	public abstract void copyElement(T element);
 }

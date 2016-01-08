@@ -34,4 +34,13 @@ public abstract class ProjectElementList<T extends ProjectElement> {
 	public interface ProjectElementListListener<T> {
 		void listElementSelected(Node node, T element);
 	}
+
+	public T getSelection() {
+		Node node = content.getSelection().first();
+		if(node != null) {
+			return (T)node.getObject();
+		} else {
+			return null;
+		}
+	}
 }

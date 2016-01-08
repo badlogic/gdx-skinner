@@ -31,4 +31,8 @@ public class FontsTab extends ProjectElementTab<StyleFont> {
 	@Override
 	public void removeElement(StyleFont element) {
 	}
+
+	@Override
+	public void copyElement(StyleFont element) {
+	}
 }

@@ -10,6 +10,7 @@ import com.badlogic.gdx.tools.skinner.EventBus.ProjectEvent;
 import com.badlogic.gdx.tools.skinner.EventBus.ProjectEventType;
 import com.badlogic.gdx.tools.skinner.model.StyleColor;
 import com.badlogic.gdx.utils.Scaling;
+import com.kotcrab.vis.ui.util.dialog.DialogUtils;
 import com.kotcrab.vis.ui.widget.VisValidatableTextField;
 import com.kotcrab.vis.ui.widget.color.ColorPicker;
 import com.kotcrab.vis.ui.widget.color.ColorPickerAdapter;
@@ -37,6 +38,27 @@ public class ColorProperties extends ProjectElementProperties<StyleColor> {
 		getContent().row();
 		getContent().add(new Label("Color: ", skinner.getUI().getSkin()));
 		getContent().add(color).fill();
+
+		colorName.setTextFieldListener((field, c) -> {
+			if (c == '\n') {
+				String newName = colorName.getText();
+				if (colorName.isInputValid() && !element.getName().equals(newName)) {
+					if (skinner.getProject().hasColor(newName)) {
+						DialogUtils.showErrorDialog(skinner.getUI().getStage(),
+								"Color names " + colorName.getText() + " already exists");
+						colorName.setText(element.getName());
+					} else {
+						skinner.getUndoManager().beginStateChange("Color name change");
+						element.setName(newName);
+						skinner.getUndoManager().endStateChange();
+						skinner.getEventBus().add(new ProjectEvent("Color name changed", ProjectEventType.ProjectModified));					
+					}
+				} else if(!colorName.isInputValid()) {
+					colorName.setText(element.getName());
+				}
+				skinner.getUI().getStage().unfocus(colorName);
+			}
+		});
 
 		color.addListener(new ClickListener() {
 			@Override
